@@ -50,11 +50,26 @@ smart-room-finder-backend/
 ├── src/
 │   ├── main/
 │   │   ├── java/
+│   │   │   └── azh/
+│   │   │       └── bkd/
+│   │   │           ├── config/
+│   │   │           ├── controller/
+│   │   │           ├── dto/
+│   │   │           ├── model/
+│   │   │           ├── repository/
+│   │   │           ├── service/
+│   │   │           ├── DemoApplication.java
+│   │   │           └── RoomSyncRunner.java
+│   │   │
 │   │   └── resources/
+│   │       └── application.properties
 │   │
 │   └── test/
 │
+├── mvnw
+├── mvnw.cmd
 ├── pom.xml
+├── .gitignore
 └── README.md
 ```
 
