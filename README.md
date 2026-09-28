@@ -32,7 +32,7 @@ The backend is responsible for application logic, API endpoints, data processing
 The web frontend is available here:
 
 **smart-room-finder-frontend**
-`https://github.com/itsaricode/smart-room-finder-frontend`
+https://github.com/itsaricode/smart-room-finder-frontend
 
 ### Mobile Application
 
@@ -40,7 +40,7 @@ The mobile application is available here:
 
 **smart-room-finder-mobile**
 
-`https://github.com/itsaricode/smart-room-finder-mobile`
+https://github.com/itsaricode/smart-room-finder-mobile
 
 ## 📁 Project Structure
 
@@ -62,9 +62,9 @@ smart-room-finder-backend/
 
 ### 1. Clone the repository
 
-```bash
+
 git clone https://github.com/itsaricode/smart-room-finder-backend.git
-```
+
 
 ### 2. Open the project
 
