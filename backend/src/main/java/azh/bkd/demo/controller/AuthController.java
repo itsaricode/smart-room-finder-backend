@@ -8,16 +8,25 @@ import azh.bkd.demo.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import azh.bkd.demo.dto.MobileLoginRequest;
+import azh.bkd.demo.dto.MobileLoginResponse;
+import azh.bkd.demo.service.MobileAuthService;
+
 @RestController
 @RequestMapping("/api/auth")
 
 public class AuthController {
 
     private final AuthService authService;
+    private final MobileAuthService mobileAuthService;
 
-    public AuthController(AuthService authService) {
-        this.authService = authService;
-    }
+   public AuthController(
+        AuthService authService,
+        MobileAuthService mobileAuthService) {
+
+    this.authService = authService;
+    this.mobileAuthService = mobileAuthService;
+}
 
     // ===================================
     // Register Admin
@@ -44,5 +53,19 @@ public class AuthController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/mobile-login")
+public ResponseEntity<MobileLoginResponse> mobileLogin(
+        @RequestBody MobileLoginRequest request) {
+
+    MobileLoginResponse response =
+            mobileAuthService.login(request);
+
+    if (!response.isSuccess()) {
+        return ResponseEntity.status(401).body(response);
+    }
+
+    return ResponseEntity.ok(response);
+}
 
 }
