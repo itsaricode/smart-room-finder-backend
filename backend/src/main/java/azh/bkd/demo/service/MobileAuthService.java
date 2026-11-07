@@ -17,16 +17,19 @@ public class MobileAuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     private static final Set<String> ALLOWED_ROLES =
             Set.of("STUDENT", "TEACHER", "CR_GR");
 
     public MobileAuthService(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+         JwtService jwtService) {
 
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+         this.jwtService = jwtService;
     }
 
     public MobileLoginResponse login(MobileLoginRequest request) {
