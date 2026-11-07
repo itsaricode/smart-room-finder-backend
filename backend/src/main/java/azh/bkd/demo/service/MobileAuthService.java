@@ -67,14 +67,20 @@ public class MobileAuthService {
             return failure("Invalid ID, password or role.");
         }
 
-        return new MobileLoginResponse(
-                true,
-                "Login successful!",
-                user.getId(),
-                user.getUsername(),
-                user.getRole(),
-                null
-        );
+        String token = jwtService.generateToken(
+        user.getId(),
+        user.getUsername(),
+        user.getRole()
+);
+
+return new MobileLoginResponse(
+        true,
+        "Login successful!",
+        user.getId(),
+        user.getUsername(),
+        user.getRole(),
+        token
+);
     }
 
     private MobileLoginResponse failure(String message) {
