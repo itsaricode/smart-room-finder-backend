@@ -1,3 +1,4 @@
+
 package azh.bkd.demo.service;
 
 import azh.bkd.demo.model.RoomBooking;
@@ -7,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-
 import java.time.LocalDateTime;
 
 @Service
@@ -34,7 +34,12 @@ public class RoomBookingService {
         return bookingRepository.findById(id);
     }
 
-    // Student Booking History
+    // Get bookings belonging to the authenticated user
+    public List<RoomBooking> getBookingsByUser(String username) {
+        return bookingRepository.findByBookedBy(username);
+    }
+
+    // Legacy Student Booking History
     public List<RoomBooking> getStudentBookings(String studentName) {
         return bookingRepository.findByStudentName(studentName);
     }
@@ -64,19 +69,17 @@ public class RoomBookingService {
         bookingRepository.save(booking);
     }
 
-   public void approve(RoomBooking booking, String message) {
+    public void approve(RoomBooking booking, String message) {
+        booking.setStatus("APPROVED");
+        booking.setAdminMessage(message);
+        booking.setSmartEngineStage("Completed");
+        booking.setApprovedRoom(booking.getRoomNo());
+        booking.setApprovedAt(LocalDateTime.now());
 
-    booking.setStatus("APPROVED");
-    booking.setAdminMessage(message);
-    booking.setSmartEngineStage("Completed");
-    booking.setApprovedRoom(booking.getRoomNo());
+        bookingRepository.save(booking);
+    }
 
-    booking.setApprovedAt(LocalDateTime.now());
-
-    bookingRepository.save(booking);
-}
     public void reject(RoomBooking booking, String reason) {
-
         booking.setStatus("REJECTED");
         booking.setAdminMessage(reason);
         booking.setSmartEngineStage("Completed");
@@ -84,51 +87,35 @@ public class RoomBookingService {
         bookingRepository.save(booking);
     }
 
+    // AVAILABLE AGAIN
+    public void availableAgain(RoomBooking booking) {
+        booking.setStatus("COMPLETED");
+        booking.setSmartEngineStage("Completed");
 
-
-// ======================================
-// AVAILABLE AGAIN
-// ======================================
-
-public void availableAgain(RoomBooking booking) {
-
-    booking.setStatus("COMPLETED");
-    booking.setSmartEngineStage("Completed");
-
-    bookingRepository.save(booking);
-}
-public void completeBooking(RoomBooking booking) {
-
-    booking.setStatus("COMPLETED");
-
-    booking.setSmartEngineStage("Completed");
-
-    
-    booking.setAdminMessage("Room is available again.");
-
-    bookingRepository.save(booking);
-}
-
-public List<RoomBooking> getApprovedBookings() {
-
-    return bookingRepository.findByStatus("APPROVED");
-}
-
-public void markCompleted(Long id) {
-
-    Optional<RoomBooking> booking = bookingRepository.findById(id);
-
-    if (booking.isPresent()) {
-
-        RoomBooking b = booking.get();
-
-        b.setStatus("COMPLETED");
-
-        b.setSmartEngineStage("Completed");
-
-        bookingRepository.save(b);
+        bookingRepository.save(booking);
     }
-    
-}
 
+    public void completeBooking(RoomBooking booking) {
+        booking.setStatus("COMPLETED");
+        booking.setSmartEngineStage("Completed");
+        booking.setAdminMessage("Room is available again.");
+
+        bookingRepository.save(booking);
+    }
+
+    public List<RoomBooking> getApprovedBookings() {
+        return bookingRepository.findByStatus("APPROVED");
+    }
+
+    public void markCompleted(Long id) {
+        Optional<RoomBooking> booking = bookingRepository.findById(id);
+
+        if (booking.isPresent()) {
+            RoomBooking b = booking.get();
+            b.setStatus("COMPLETED");
+            b.setSmartEngineStage("Completed");
+
+            bookingRepository.save(b);
+        }
+    }
 }
