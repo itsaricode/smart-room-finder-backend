@@ -6,42 +6,55 @@ import azh.bkd.demo.dto.RegisterRequest;
 import azh.bkd.demo.model.Admin;
 import azh.bkd.demo.repository.AdminRepository;
 
-
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
+import java.util.Objects;
+import java.util.regex.Pattern;
 
 @Service
 public class AuthService {
 
     private final AdminRepository adminRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    public AuthService(AdminRepository adminRepository) {
+    private static final Pattern BCRYPT_PATTERN =
+            Pattern.compile("^\\$2[aby]\\$\\d{2}\\$.{53}$");
+
+    public AuthService(
+            AdminRepository adminRepository,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService) {
+
         this.adminRepository = adminRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     // ==========================
     // Register Admin
     // ==========================
 
+    @Transactional
     public String register(RegisterRequest request) {
 
-        // Email already exists
         if (adminRepository.existsByEmail(request.getEmail())) {
             return "Email already registered!";
         }
 
-        // Password check
-        if (!request.getPassword().equals(request.getConfirmPassword())) {
+        if (!Objects.equals(
+                request.getPassword(),
+                request.getConfirmPassword())) {
             return "Passwords do not match!";
         }
 
-        // Terms check
         if (!request.isAgreeTerms()) {
             return "Please accept Terms & Conditions.";
         }
 
-        // Create Admin
         Admin admin = new Admin();
 
         admin.setUniversityName(request.getUniversityName());
@@ -53,10 +66,8 @@ public class AuthService {
         admin.setPhone(request.getPhone());
         admin.setDesignation(request.getDesignation());
 
-        // NOTE:
-        // For now password is saved directly.
-        // Later we will use BCrypt encryption.
-        admin.setPassword(request.getPassword());
+        // Store new passwords as BCrypt hashes.
+        admin.setPassword(passwordEncoder.encode(request.getPassword()));
 
         admin.setLogo(request.getLogo());
         admin.setAgreeTerms(request.isAgreeTerms());
@@ -67,28 +78,78 @@ public class AuthService {
         return "Workspace created successfully!";
     }
 
-   // ==========================
-// Login
-// ==========================
+    // ==========================
+    // Login Admin
+    // ==========================
 
-public LoginResponse login(LoginRequest request) {
+    @Transactional
+    public LoginResponse login(LoginRequest request) {
 
-    System.out.println("==================================");
-    System.out.println("LOGIN REQUEST RECEIVED");
-    System.out.println("Email    : " + request.getEmail());
-    System.out.println("Password : " + request.getPassword());
-    System.out.println("==================================");
+        Optional<Admin> optionalAdmin =
+                adminRepository.findByEmail(request.getEmail());
 
-    Optional<Admin> optionalAdmin =
-            adminRepository.findByEmail(request.getEmail());
+        if (optionalAdmin.isEmpty()) {
+            return failedLogin("Invalid Email");
+        }
 
-    if (optionalAdmin.isEmpty()) {
+        Admin admin = optionalAdmin.get();
 
-        System.out.println("Admin NOT FOUND!");
+        if (!admin.isActive()) {
+            return failedLogin("Account Disabled");
+        }
+
+        String storedPassword = admin.getPassword();
+        String rawPassword = request.getPassword();
+
+        if (storedPassword == null || rawPassword == null) {
+            return failedLogin("Invalid Password");
+        }
+
+        boolean passwordMatches;
+
+        if (BCRYPT_PATTERN.matcher(storedPassword).matches()) {
+
+            // Existing BCrypt password.
+            passwordMatches =
+                    passwordEncoder.matches(rawPassword, storedPassword);
+
+        } else {
+
+            // Legacy plain-text password migration.
+            passwordMatches = storedPassword.equals(rawPassword);
+
+            if (passwordMatches) {
+                admin.setPassword(passwordEncoder.encode(rawPassword));
+                adminRepository.save(admin);
+            }
+        }
+
+        if (!passwordMatches) {
+            return failedLogin("Invalid Password");
+        }
+
+        // Generate a real JWT for the authenticated admin.
+        String token = jwtService.generateToken(
+                admin.getId(),
+                admin.getEmail(),
+                "ADMIN"
+        );
 
         return new LoginResponse(
+                true,
+                "Login Successful",
+                admin.getId(),
+                admin.getAdminName(),
+                admin.getEmail(),
+                admin.getDesignation(),
+                token
+        );
+    }
+
+    private LoginResponse failedLogin(String message) {
+        return new LoginResponse(
                 false,
-                "Invalid Email",
+                message,
                 null,
                 null,
                 null,
@@ -96,52 +157,4 @@ public LoginResponse login(LoginRequest request) {
                 null
         );
     }
-
-    Admin admin = optionalAdmin.get();
-
-    System.out.println("Admin Found : " + admin.getEmail());
-
-    if (!admin.getPassword().equals(request.getPassword())) {
-
-        System.out.println("Password Incorrect!");
-
-        return new LoginResponse(
-                false,
-                "Invalid Password",
-                null,
-                null,
-                null,
-                null,
-                null
-        );
-    }
-
-    if (!admin.isActive()) {
-
-        System.out.println("Account Disabled!");
-
-        return new LoginResponse(
-                false,
-                "Account Disabled",
-                null,
-                null,
-                null,
-                null,
-                null
-        );
-    }
-
-    System.out.println("LOGIN SUCCESSFUL!");
-
-    return new LoginResponse(
-            true,
-            "Login Successful",
-            admin.getId(),
-            admin.getAdminName(),
-            admin.getEmail(),
-            admin.getDesignation(),
-            "JWT_COMING_SOON"
-    );
-}
-
 }
