@@ -45,14 +45,18 @@ public class AuthController {
     // Login Admin
     // ===================================
 
-    @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(
-            @RequestBody LoginRequest request) {
+   @PostMapping("/login")
+public ResponseEntity<LoginResponse> login(
+        @RequestBody LoginRequest request) {
 
-        LoginResponse response = authService.login(request);
+    LoginResponse response = authService.login(request);
 
-        return ResponseEntity.ok(response);
+    if (!response.isSuccess()) {
+        return ResponseEntity.status(401).body(response);
     }
+
+    return ResponseEntity.ok(response);
+}
 
     @PostMapping("/mobile-login")
 public ResponseEntity<MobileLoginResponse> mobileLogin(
