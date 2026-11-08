@@ -1,13 +1,14 @@
+
 package azh.bkd.demo.controller;
+
 import azh.bkd.demo.model.Room;
-import azh.bkd.demo.service.RoomService;
 import azh.bkd.demo.model.RoomBooking;
+import azh.bkd.demo.service.RoomService;
 import azh.bkd.demo.service.RoomBookingService;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-
 
 import java.util.List;
 import java.util.Optional;
@@ -18,226 +19,223 @@ import java.util.Optional;
 public class BookingController {
 
     private final RoomBookingService bookingService;
-private final RoomService roomService;
+    private final RoomService roomService;
 
-public BookingController(
-        RoomBookingService bookingService,
-        RoomService roomService) {
+    public BookingController(
+            RoomBookingService bookingService,
+            RoomService roomService) {
 
-    this.bookingService = bookingService;
-    this.roomService = roomService;
-}
+        this.bookingService = bookingService;
+        this.roomService = roomService;
+    }
 
     // =====================================
-    // Student sends booking request
+    // User sends booking request
     // =====================================
-@PostMapping("/request")
-public ResponseEntity<RoomBooking> requestBooking(
-        @RequestBody RoomBooking booking) {
 
-    // ===============================
-    // Initial Request
-    // ===============================
+    @PostMapping("/request")
+    public ResponseEntity<RoomBooking> requestBooking(
+            @RequestBody RoomBooking booking,
+            @AuthenticationPrincipal String username) {
 
-    booking.setStatus("PENDING");
-    booking.setSmartEngineStage("Reading Timetable...");
-    booking.setAdminMessage("Smart Engine is processing your request...");
+        // Server controls booking ownership and workflow fields
+        booking.setId(null);
+        booking.setBookedBy(username);
 
-    RoomBooking savedBooking = bookingService.saveBooking(booking);
+        booking.setStatus("PENDING");
+        booking.setSmartEngineStage("Reading Timetable...");
+        booking.setAdminMessage(
+                "Smart Engine is processing your request...");
 
-    // Return immediately so admin can see PENDING
-    ResponseEntity<RoomBooking> response =
-            ResponseEntity.ok(savedBooking);
+        booking.setApprovedRoom(null);
+        booking.setAlternateRoom(null);
+        booking.setConflictWith(null);
+        booking.setUserDecision(null);
+        booking.setApprovedAt(null);
 
-    // ===============================
-    // Smart Engine Background Thread
-    // ===============================
+        RoomBooking savedBooking =
+                bookingService.saveBooking(booking);
 
-    new Thread(() -> {
+        ResponseEntity<RoomBooking> response =
+                ResponseEntity.ok(savedBooking);
 
-        try {
+        // =====================================
+        // Smart Engine Background Thread
+        // =====================================
 
-            // Reading Timetable
-            Thread.sleep(2000);
+        new Thread(() -> {
 
-            savedBooking.setStatus("PROCESSING");
-            savedBooking.setSmartEngineStage("Reading Timetable...");
-            bookingService.saveBooking(savedBooking);
+            try {
 
-            // Checking Availability
-            Thread.sleep(2000);
+                Thread.sleep(2000);
 
-            savedBooking.setSmartEngineStage(
-                    "Checking Room Availability...");
-            bookingService.saveBooking(savedBooking);
+                savedBooking.setStatus("PROCESSING");
+                savedBooking.setSmartEngineStage(
+                        "Reading Timetable...");
+                bookingService.saveBooking(savedBooking);
 
-            // Check Conflict
-            List<RoomBooking> conflicts =
-                    bookingService.checkConflicts(
-                            savedBooking.getRoomNo(),
-                            savedBooking.getDay(),
-                            savedBooking.getTimeSlot());
+                Thread.sleep(2000);
 
-            // Finalizing
-            Thread.sleep(2000);
+                savedBooking.setSmartEngineStage(
+                        "Checking Room Availability...");
+                bookingService.saveBooking(savedBooking);
 
-            savedBooking.setSmartEngineStage(
-                    "Finalizing Allocation...");
-            bookingService.saveBooking(savedBooking);
+                List<RoomBooking> conflicts =
+                        bookingService.checkConflicts(
+                                savedBooking.getRoomNo(),
+                                savedBooking.getDay(),
+                                savedBooking.getTimeSlot());
 
-            Thread.sleep(2000);
+                Thread.sleep(2000);
 
-            // ===============================
-            // Conflict
-            // ===============================
+                savedBooking.setSmartEngineStage(
+                        "Finalizing Allocation...");
+                bookingService.saveBooking(savedBooking);
 
-            if (!conflicts.isEmpty()) {
+                Thread.sleep(2000);
 
-                bookingService.reject(
+                if (!conflicts.isEmpty()) {
+
+                    bookingService.reject(
+                            savedBooking,
+                            "Room is already booked.");
+
+                    return;
+                }
+
+                bookingService.approve(
                         savedBooking,
-                        "Room is already booked.");
+                        "Automatically approved by Smart Engine.");
 
-                return;
-            }
-
-            // ===============================
-            // Approved
-            // ===============================
-
-            bookingService.approve(
-                    savedBooking,
-                    "Automatically approved by Smart Engine.");
-
-            Room room =
-                    roomService.getRoomByRoomNo(
-                            savedBooking.getRoomNo());
-
-            if (room != null) {
-
-                room.setStatus("OCCUPIED");
-                room.setAvailable(false);
-
-                roomService.saveRoom(room);
-
-                System.out.println(
-                        "Room Occupied Successfully");
-            }
-
-            // ===============================
-            // Auto Complete after 30 sec
-            // ===============================
-
-            Thread.sleep(30000);
-
-            RoomBooking latestBooking =
-                    bookingService
-                            .getBookingById(savedBooking.getId())
-                            .orElse(null);
-
-            if (latestBooking != null &&
-                    "APPROVED".equals(latestBooking.getStatus())) {
-
-                bookingService.completeBooking(
-                        latestBooking);
-
-                Room latestRoom =
+                Room room =
                         roomService.getRoomByRoomNo(
-                                latestBooking.getRoomNo());
+                                savedBooking.getRoomNo());
 
-                if (latestRoom != null) {
-
-                    latestRoom.setStatus("AVAILABLE");
-                    latestRoom.setAvailable(true);
-
-                    roomService.saveRoom(latestRoom);
+                if (room != null) {
+                    room.setStatus("OCCUPIED");
+                    room.setAvailable(false);
+                    roomService.saveRoom(room);
 
                     System.out.println(
-                            "Room Available Again");
+                            "Room Occupied Successfully");
                 }
+
+                // Auto Complete after 30 seconds
+                Thread.sleep(30000);
+
+                RoomBooking latestBooking =
+                        bookingService
+                                .getBookingById(savedBooking.getId())
+                                .orElse(null);
+
+                if (latestBooking != null &&
+                        "APPROVED".equals(
+                                latestBooking.getStatus())) {
+
+                    bookingService.completeBooking(
+                            latestBooking);
+
+                    Room latestRoom =
+                            roomService.getRoomByRoomNo(
+                                    latestBooking.getRoomNo());
+
+                    if (latestRoom != null) {
+                        latestRoom.setStatus("AVAILABLE");
+                        latestRoom.setAvailable(true);
+                        roomService.saveRoom(latestRoom);
+
+                        System.out.println(
+                                "Room Available Again");
+                    }
+                }
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
 
-        } catch (InterruptedException e) {
+        }).start();
 
-            Thread.currentThread().interrupt();
+        return response;
+    }
 
-        }
-
-    }).start();
-
-    return response;
-}
     // =====================================
     // Admin gets all bookings
     // =====================================
 
     @GetMapping("/all")
     public List<RoomBooking> getAllBookings() {
-
         return bookingService.getAllBookings();
-
     }
 
     // =====================================
-    // Student booking history
+    // Logged-in user's booking history
     // =====================================
 
+    @GetMapping("/my")
+    public List<RoomBooking> getMyBookings(
+            @AuthenticationPrincipal String username) {
 
-// =====================================
-// Available Again
-// =====================================
-
-@PostMapping("/available-again/{id}")
-public ResponseEntity<String> availableAgain(
-        @PathVariable Long id) {
-
-    RoomBooking booking = bookingService
-            .getBookingById(id)
-            .orElse(null);
-
-    if (booking == null) {
-        return ResponseEntity.notFound().build();
+        return bookingService.getBookingsByUser(username);
     }
 
-    Room room = roomService
-            .getAllRooms()
-            .stream()
-            .filter(r -> r.getRoomNo().equals(booking.getRoomNo()))
-            .findFirst()
-            .orElse(null);
+    // =====================================
+    // Available Again
+    // =====================================
 
-    if (room != null) {
-        room.setStatus("AVAILABLE");
-        room.setAvailable(true);
-        roomService.saveRoom(room);
+    @PostMapping("/available-again/{id}")
+    public ResponseEntity<String> availableAgain(
+            @PathVariable Long id) {
+
+        RoomBooking booking = bookingService
+                .getBookingById(id)
+                .orElse(null);
+
+        if (booking == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Room room = roomService
+                .getAllRooms()
+                .stream()
+                .filter(r -> r.getRoomNo().equals(
+                        booking.getRoomNo()))
+                .findFirst()
+                .orElse(null);
+
+        if (room != null) {
+            room.setStatus("AVAILABLE");
+            room.setAvailable(true);
+            roomService.saveRoom(room);
+        }
+
+        bookingService.availableAgain(booking);
+
+        return ResponseEntity.ok(
+                "Room is Available Again.");
     }
 
-    bookingService.availableAgain(booking);
+    // =====================================
+    // Complete Booking
+    // =====================================
 
-    return ResponseEntity.ok("Room is Available Again.");
-}
+    @PutMapping("/{id}/complete")
+    public ResponseEntity<RoomBooking> completeBooking(
+            @PathVariable Long id) {
 
-// =====================================
-// Complete Booking
-// =====================================
-@PutMapping("/{id}/complete")
-public ResponseEntity<RoomBooking> completeBooking(
-        @PathVariable Long id) {
+        Optional<RoomBooking> booking =
+                bookingService.getBookingById(id);
 
-    Optional<RoomBooking> booking =
-            bookingService.getBookingById(id);
+        if (booking.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
 
-    if (booking.isEmpty()) {
-        return ResponseEntity.notFound().build();
+        RoomBooking roomBooking = booking.get();
+
+        bookingService.completeBooking(roomBooking);
+
+        return ResponseEntity.ok(roomBooking);
     }
 
-    RoomBooking roomBooking = booking.get();
-
-    bookingService.completeBooking(roomBooking);
-
-    // ❌ Yahan room AVAILABLE mat karo.
-
-    return ResponseEntity.ok(roomBooking);
-  }
     // =====================================
     // Delete Booking
     // =====================================
@@ -248,9 +246,7 @@ public ResponseEntity<RoomBooking> completeBooking(
 
         bookingService.deleteBooking(id);
 
-        return ResponseEntity.ok("Booking deleted successfully.");
-
+        return ResponseEntity.ok(
+                "Booking deleted successfully.");
     }
-
-
 }

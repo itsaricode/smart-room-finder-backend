@@ -66,6 +66,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/bookings/request")
                     .hasAnyRole("STUDENT", "TEACHER", "CR_GR")
 
+// Mobile users can view only their own booking history
+.requestMatchers(HttpMethod.GET, "/api/bookings/my")
+    .hasAnyRole("STUDENT", "TEACHER", "CR_GR")
+
                 // Admin-only booking management
                 .requestMatchers("/api/bookings/all")
                     .hasRole("ADMIN")
