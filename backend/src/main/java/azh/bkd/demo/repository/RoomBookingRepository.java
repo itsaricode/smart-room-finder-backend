@@ -16,5 +16,7 @@ public interface RoomBookingRepository extends JpaRepository<RoomBooking, Long> 
 
     List<RoomBooking> findByStudentName(String studentName);
 
+    List<RoomBooking> findByBookedBy(String bookedBy);
+
     List<RoomBooking> findByStatus(String status);
 }

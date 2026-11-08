@@ -62,9 +62,23 @@ public LocalDateTime getApprovedAt() {
         return studentName;
     }
 
+
+
     public void setStudentName(String studentName) {
         this.studentName = studentName;
     }
+
+    @Column(name = "booked_by")
+private String bookedBy;
+
+public String getBookedBy() {
+    return bookedBy;
+}
+
+public void setBookedBy(String bookedBy) {
+    this.bookedBy = bookedBy;
+}
+
 
     public String getRoomNo() {
         return roomNo;
