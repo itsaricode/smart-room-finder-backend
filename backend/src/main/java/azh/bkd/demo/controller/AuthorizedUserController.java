@@ -1,6 +1,7 @@
 
 package azh.bkd.demo.controller;
 
+import azh.bkd.demo.dto.AuthorizedUserResponse;
 import azh.bkd.demo.model.AuthorizedUser;
 import azh.bkd.demo.service.AuthorizedUserService;
 
@@ -23,10 +24,15 @@ public class AuthorizedUserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AuthorizedUser>> getAllUsers() {
+    public ResponseEntity<List<AuthorizedUserResponse>> getAllUsers() {
 
-        return ResponseEntity.ok(
-                authorizedUserService.getAllUsers());
+        List<AuthorizedUserResponse> users =
+                authorizedUserService.getAllUsers()
+                        .stream()
+                        .map(AuthorizedUserResponse::new)
+                        .toList();
+
+        return ResponseEntity.ok(users);
     }
 
     @PostMapping
@@ -42,7 +48,8 @@ public class AuthorizedUserController {
                     request.get("email")
             );
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(user);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(new AuthorizedUserResponse(user));
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
@@ -63,8 +70,10 @@ public class AuthorizedUserController {
                         .body(Map.of("message", "Active status is required."));
             }
 
-            return ResponseEntity.ok(
-                    authorizedUserService.updateStatus(id, active));
+            AuthorizedUser user =
+                    authorizedUserService.updateStatus(id, active);
+
+            return ResponseEntity.ok(new AuthorizedUserResponse(user));
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
