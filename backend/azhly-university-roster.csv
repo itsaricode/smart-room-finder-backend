@@ -1,0 +1,5 @@
+universityId,fullName,role,department,email,active
+CS-001,Ali Ahmed,STUDENT,Computer Science,ali@example.edu,true
+CS-CR-001,Usman Ali,CR_GR,Computer Science,usman@example.edu,true
+CS-PILOT-001,Sample Student,STUDENT,Computer Science,student@example.com,true
+EMP-001,Sara Khan,TEACHER,Computer Science,sara@example.edu,true

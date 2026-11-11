@@ -80,4 +80,26 @@ public class AuthorizedUserController {
                     .body(Map.of("message", e.getMessage()));
         }
     }
+
+    @PostMapping("/{id}/claim-code")
+public ResponseEntity<?> generateClaimCode(
+        @PathVariable Long id) {
+
+    try {
+        String code =
+                authorizedUserService.generateClaimCode(id);
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "message", "Claim code generated successfully.",
+                        "claimCode", code
+                )
+        );
+
+    } catch (IllegalArgumentException e) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("message", e.getMessage()));
+    }
+}
+
 }

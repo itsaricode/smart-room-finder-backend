@@ -1,0 +1,4 @@
+universityId,fullName,role,department,email
+CS-001,Ali Ahmed,STUDENT,Computer Science,ali@example.edu
+EMP-001,Sara Khan,TEACHER,Computer Science,sara@example.edu
+CS-CR-001,Usman Ali,CR_GR,Computer Science,usman@example.edu

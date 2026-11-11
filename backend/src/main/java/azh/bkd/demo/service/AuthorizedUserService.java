@@ -6,6 +6,9 @@ import azh.bkd.demo.model.AuthorizedUser;
 import azh.bkd.demo.repository.AdminRepository;
 import azh.bkd.demo.repository.AuthorizedUserRepository;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+import java.security.SecureRandom;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -21,12 +24,23 @@ public class AuthorizedUserService {
     private final AuthorizedUserRepository authorizedUserRepository;
     private final AdminRepository adminRepository;
 
+
+    private final PasswordEncoder passwordEncoder;
+
+private static final SecureRandom RANDOM = new SecureRandom();
+
+private static final String CODE_CHARS =
+        "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
     public AuthorizedUserService(
-            AuthorizedUserRepository authorizedUserRepository,
-            AdminRepository adminRepository) {
-        this.authorizedUserRepository = authorizedUserRepository;
-        this.adminRepository = adminRepository;
-    }
+        AuthorizedUserRepository authorizedUserRepository,
+        AdminRepository adminRepository,
+        PasswordEncoder passwordEncoder) {
+
+    this.authorizedUserRepository = authorizedUserRepository;
+    this.adminRepository = adminRepository;
+    this.passwordEncoder = passwordEncoder;
+}
 
     private Admin getCurrentAdmin() {
 
@@ -130,4 +144,40 @@ public class AuthorizedUserService {
 
         return authorizedUserRepository.save(user);
     }
+
+    public String generateClaimCode(Long id) {
+
+    Admin admin = getCurrentAdmin();
+
+    AuthorizedUser user =
+            authorizedUserRepository.findByIdAndAdminId(
+                    id, admin.getId())
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "Roster user not found."));
+
+    if (!user.isActive()) {
+        throw new IllegalArgumentException(
+                "Cannot generate a code for an inactive user.");
+    }
+
+    StringBuilder code = new StringBuilder();
+
+    for (int i = 0; i < 10; i++) {
+        code.append(
+                CODE_CHARS.charAt(
+                        RANDOM.nextInt(CODE_CHARS.length())
+                )
+        );
+    }
+
+    String rawCode = code.toString();
+
+    user.setClaimCodeHash(passwordEncoder.encode(rawCode));
+
+    authorizedUserRepository.save(user);
+
+    return rawCode;
+}
+
 }
