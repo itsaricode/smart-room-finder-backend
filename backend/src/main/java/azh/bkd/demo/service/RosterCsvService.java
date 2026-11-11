@@ -157,9 +157,12 @@ public class RosterCsvService {
 
     public String getSampleCsv() {
 
-        return "universityId,fullName,role,department,email\n"
-                + "CS-001,Ali Ahmed,STUDENT,Computer Science,ali@example.edu\n"
-                + "EMP-001,Sara Khan,TEACHER,Computer Science,sara@example.edu\n"
-                + "CS-CR-001,Usman Ali,CR_GR,Computer Science,usman@example.edu\n";
-    }
+    String domain =
+            authorizedUserService.getCurrentAdminEmailDomain();
+
+    return "universityId,fullName,role,department,email\n"
+            + "CS-001,Ali Ahmed,STUDENT,Computer Science,ali@" + domain + "\n"
+            + "EMP-001,Sara Khan,TEACHER,Computer Science,sara@" + domain + "\n"
+            + "CS-CR-001,Usman Ali,CR_GR,Computer Science,usman@" + domain + "\n";
+}
 }
