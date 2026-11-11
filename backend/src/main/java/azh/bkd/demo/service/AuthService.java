@@ -23,7 +23,9 @@ public class AuthService {
 
     private static final Pattern BCRYPT_PATTERN =
             Pattern.compile("^\\$2[aby]\\$\\d{2}\\$.{53}$");
-
+    private static final Pattern EMAIL_PATTERN =
+            Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$",
+                    Pattern.CASE_INSENSITIVE);
     public AuthService(
             AdminRepository adminRepository,
             PasswordEncoder passwordEncoder,
@@ -38,45 +40,63 @@ public class AuthService {
     // Register Admin
     // ==========================
 
-    @Transactional
-    public String register(RegisterRequest request) {
 
-        if (adminRepository.existsByEmail(request.getEmail())) {
-            return "Email already registered!";
-        }
+@Transactional
+public String register(RegisterRequest request) {
 
-        if (!Objects.equals(
-                request.getPassword(),
-                request.getConfirmPassword())) {
-            return "Passwords do not match!";
-        }
-
-        if (!request.isAgreeTerms()) {
-            return "Please accept Terms & Conditions.";
-        }
-
-        Admin admin = new Admin();
-
-        admin.setUniversityName(request.getUniversityName());
-        admin.setCampusName(request.getCampusName());
-        admin.setInstituteType(request.getInstituteType());
-
-        admin.setAdminName(request.getAdminName());
-        admin.setEmail(request.getEmail());
-        admin.setPhone(request.getPhone());
-        admin.setDesignation(request.getDesignation());
-
-        // Store new passwords as BCrypt hashes.
-        admin.setPassword(passwordEncoder.encode(request.getPassword()));
-
-        admin.setLogo(request.getLogo());
-        admin.setAgreeTerms(request.isAgreeTerms());
-        admin.setActive(true);
-
-        adminRepository.save(admin);
-
-        return "Workspace created successfully!";
+    if (request.getEmail() == null
+            || !EMAIL_PATTERN.matcher(request.getEmail().trim()).matches()) {
+        return "Please enter a valid institutional email address.";
     }
+
+    String normalizedEmail =
+            request.getEmail().trim().toLowerCase(java.util.Locale.ROOT);
+
+    String emailDomain =
+            normalizedEmail.substring(normalizedEmail.lastIndexOf('@') + 1);
+
+    if (adminRepository.existsByEmail(normalizedEmail)) {
+        return "Email already registered!";
+    }
+
+    if (adminRepository.existsByEmailDomain(emailDomain)
+            || adminRepository.existsByEmailEndingWithIgnoreCase(
+                    "@" + emailDomain)) {
+        return "This university email domain is already registered!";
+    }
+
+    if (!Objects.equals(
+            request.getPassword(),
+            request.getConfirmPassword())) {
+        return "Passwords do not match!";
+    }
+
+    if (!request.isAgreeTerms()) {
+        return "Please accept Terms & Conditions.";
+    }
+
+    Admin admin = new Admin();
+
+    admin.setUniversityName(request.getUniversityName());
+    admin.setCampusName(request.getCampusName());
+    admin.setInstituteType(request.getInstituteType());
+
+    admin.setAdminName(request.getAdminName());
+    admin.setEmail(normalizedEmail);
+    admin.setEmailDomain(emailDomain);
+    admin.setPhone(request.getPhone());
+    admin.setDesignation(request.getDesignation());
+
+    admin.setPassword(passwordEncoder.encode(request.getPassword()));
+
+    admin.setLogo(request.getLogo());
+    admin.setAgreeTerms(request.isAgreeTerms());
+    admin.setActive(true);
+
+    adminRepository.save(admin);
+
+    return "Workspace created successfully!";
+}
 
     // ==========================
     // Login Admin
