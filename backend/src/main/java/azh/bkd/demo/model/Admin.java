@@ -34,6 +34,9 @@ public class Admin {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(unique = true)
+    private String emailDomain;
+
     @Column(nullable = false)
     private String phone;
 
@@ -125,6 +128,15 @@ public class Admin {
     public void setEmail(String email) {
         this.email = email;
     }
+
+
+    public String getEmailDomain() {
+    return emailDomain;
+}
+
+public void setEmailDomain(String emailDomain) {
+    this.emailDomain = emailDomain;
+}
 
     public String getPhone() {
         return phone;
