@@ -105,6 +105,37 @@ private static final String CODE_CHARS =
         String normalizedId = universityId.trim().toUpperCase(Locale.ROOT);
         String normalizedRole = normalizeRole(role);
 
+
+        // Validate the roster user's institutional email.
+if (email == null || email.isBlank()) {
+    throw new IllegalArgumentException(
+            "Institutional email is required.");
+}
+
+String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
+
+int atIndex = normalizedEmail.lastIndexOf('@');
+
+if (atIndex <= 0 || atIndex == normalizedEmail.length() - 1) {
+    throw new IllegalArgumentException(
+            "Please provide a valid email address.");
+}
+
+String userDomain = normalizedEmail.substring(atIndex + 1);
+
+String adminDomain = admin.getEmailDomain();
+
+if (adminDomain == null || adminDomain.isBlank()) {
+    throw new IllegalStateException(
+            "Admin email domain is not configured.");
+}
+
+if (!userDomain.equalsIgnoreCase(adminDomain)) {
+    throw new IllegalArgumentException(
+            "User email must belong to your university domain: "
+                    + adminDomain);
+}
+
         if (authorizedUserRepository
                 .existsByAdminIdAndUniversityIdAndRole(
                         admin.getId(), normalizedId, normalizedRole)) {
@@ -121,9 +152,7 @@ private static final String CODE_CHARS =
         user.setDepartment(
                 department == null || department.isBlank()
                         ? null : department.trim());
-        user.setEmail(
-                email == null || email.isBlank()
-                        ? null : email.trim().toLowerCase(Locale.ROOT));
+        user.setEmail(normalizedEmail);
         user.setActive(true);
 
         return authorizedUserRepository.save(user);
