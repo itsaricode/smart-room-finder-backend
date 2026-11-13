@@ -23,6 +23,13 @@ public interface AuthorizedUserRepository
             String role
     );
 
+
+    Optional<AuthorizedUser> findByUniversityIdAndEmailIgnoreCaseAndRole(
+            String universityId,
+            String email,
+            String role
+    );
+
     boolean existsByAdminIdAndUniversityIdAndRole(
             Long adminId,
             String universityId,
