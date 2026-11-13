@@ -8,6 +8,7 @@ import azh.bkd.demo.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import azh.bkd.demo.dto.MobileRegisterRequest;
 import azh.bkd.demo.dto.MobileLoginRequest;
 import azh.bkd.demo.dto.MobileLoginResponse;
 import azh.bkd.demo.service.MobileAuthService;
@@ -71,5 +72,24 @@ public ResponseEntity<MobileLoginResponse> mobileLogin(
 
     return ResponseEntity.ok(response);
 }
+
+
+    // ===================================
+    // Register Mobile User
+    // ===================================
+
+    @PostMapping("/mobile-register")
+    public ResponseEntity<MobileLoginResponse> mobileRegister(
+            @RequestBody MobileRegisterRequest request) {
+
+        MobileLoginResponse response =
+                mobileAuthService.register(request);
+
+        if (!response.isSuccess()) {
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        return ResponseEntity.ok(response);
+    }
 
 }
