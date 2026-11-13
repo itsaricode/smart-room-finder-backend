@@ -44,7 +44,8 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/auth/register",
                     "/api/auth/login",
-                    "/api/auth/mobile-login"
+                    "/api/auth/mobile-login",
+                    "/api/auth/mobile-register"
                 ).permitAll()
 
                 // Admin-only analytics
