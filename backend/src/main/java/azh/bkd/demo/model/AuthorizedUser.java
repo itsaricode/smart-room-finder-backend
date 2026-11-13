@@ -44,6 +44,9 @@ public class AuthorizedUser {
     // Store only a hash of the one-time registration claim code
     private String claimCodeHash;
 
+    @Column(nullable = false)
+    private boolean registered = false;
+
     private LocalDateTime createdAt;
 
     public AuthorizedUser() {
@@ -121,6 +124,14 @@ public class AuthorizedUser {
 
     public void setClaimCodeHash(String claimCodeHash) {
         this.claimCodeHash = claimCodeHash;
+    }
+
+    public boolean isRegistered() {
+        return registered;
+    }
+
+    public void setRegistered(boolean registered) {
+        this.registered = registered;
     }
 
     public LocalDateTime getCreatedAt() {
